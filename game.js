@@ -152,9 +152,9 @@ class Level {
 
 	removeActor(actor) {
 		this.actors = this.actors.filter(function(other) {
-      return other != actor;
-    });
-  }
+			return other != actor;
+		});
+	}
 
 	noMoreActors(type) {
 		return !this.actors.some(actor => actor.type === type);
@@ -174,5 +174,4 @@ class Level {
 			}
 		}
 	}
-
 }
