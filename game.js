@@ -96,16 +96,83 @@ class Actor {
 }
 
 class Level {
-	constructor(grid, actors) {
+	constructor(grid = [], actors = []) {
 		this.grid = grid;
-		this.actors = actors; //верно, не удаляй
+		this.actors = actors;
+		this.player = this.actors.find(function(actor) {
+			return actor.type == "player";
+		});
 		this.height = grid.length;
-		this.width = grid[0].length;
-		this.status = null; //верно, не удаляй
-		this.finishDelay = 1; //верно, не удаляй
+		this.width = this.height > 0 ? Math.max.apply(Math, this.grid.map(function(el) {
+      return el.length;
+    })) : 0;
+		this.status = null;
+		this.finishDelay = 1;
 	}
 
 	isFinished() {
-		return this.status !== null && this.finishDelay < 0; //верно, не удаляй
+		return this.status !== null && this.finishDelay < 0;
 	}
+
+	actorAt(actor) {
+		if (!(actor instanceof Actor) || actor === undefined) {
+			throw new Error('Аргумент, переданный в функцию actorAt должен являться оъектом типа Actor');
+		}
+  	return this.actors.find(other => other.isIntersect(actor));
+	}
+
+	obstacleAt(pos, size) {
+		if(!(pos instanceof Vector) || !(size instanceof Vector)) {
+			throw new Error('Аргументы, переданные в функцию obstacleAt должны являться оъектами типа Vector');
+		}
+
+		let xStart = Math.floor(pos.x);
+	  let xEnd = Math.ceil(pos.x + size.x);
+	  let yStart = Math.floor(pos.y);
+	  let yEnd = Math.ceil(pos.y + size.y);
+
+	  if (xStart < 0 || xEnd > this.width || yStart < 0) {
+	  	return "wall";
+	  }
+
+	  if (yEnd > this.height) {
+			return "lava";
+	  }
+	  // Вернет строку wall если площадь пересекается со стеной и строку lava если площадь пересекается с лавой.
+	  // Вернет строку wall если площадь пересекается со стеной и объект имеет не целочисленные координаты или не целочисленный размер
+		for (let y = yStart; y < yEnd; y++) {
+			for (let x = xStart; x < xEnd; x++) {
+				let fieldType = this.grid[y][x];
+				if (fieldType) {
+					return fieldType;
+				}
+			}
+		}
+	}
+
+	removeActor(actor) {
+		this.actors = this.actors.filter(function(other) {
+      return other != actor;
+    });
+  }
+
+	noMoreActors(type) {
+		return !this.actors.some(actor => actor.type === type);
+	}
+
+	playerTouched(type, actor) {
+		if (this.status !== null) {
+			return;
+		} else if (type === 'lava' || type === 'fireball') {
+				this.status = 'lost';
+				this.finishDelay = 1;
+		} else if (type = 'coin') {
+			this.actors = this.actors.filter(other => other != actor);
+			if (this.noMoreActors('coin')) {
+				this.status = 'won';
+				this.finishDelay = 1;
+			}
+		}
+	}
+
 }
