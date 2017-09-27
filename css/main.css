@@ -14,6 +14,7 @@ hidden {
 
 .fireball {
   background: rgb(255, 100, 100);
+  border-radius: 50% 50% 50% 50%;
 }
 
 .lava {
@@ -34,6 +35,7 @@ hidden {
 
 .coin {
   background: rgb(241, 229, 89);
+  border-radius: 50%;
 }
 
 .player {
