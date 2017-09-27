@@ -55,7 +55,7 @@ class Actor {
 		if (!(actor instanceof Actor)) {
 			throw new Error('Передан аргумент, отличный от типа Actor');
 		} else if (!actor) {
-			throw new new Error('Не передан аргумент в функцию isIntersect()');
+			throw new Error('Не передан аргумент в функцию isIntersect()');
 		}
 
     if (actor === this) {
@@ -139,7 +139,7 @@ class Level {
 		} else if (type === 'lava' || type === 'fireball') {
 				this.status = 'lost';
 				this.finishDelay = 1;
-		} else if (type = 'coin') {
+		} else if (type === 'coin') {
 			this.actors = this.actors.filter(other => other != actor);
 			if (this.noMoreActors('coin')) {
 				this.status = 'won';
@@ -253,7 +253,7 @@ class FireRain extends Fireball {
 
 class Coin extends Actor {
 	constructor(pos = new Vector(0, 0)) {
-		super(pos)
+		super(pos);
 		Object.defineProperty(this, 'type', {value: 'coin', writable: false});
 		this.pos = this.pos.plus(new Vector(0.2, 0.1));
 		this.size = new Vector(0.6, 0.6);
