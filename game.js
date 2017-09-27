@@ -1,14 +1,4 @@
 'use strict';
-/*
-	Класс Vector создает объект со свойствами x и y, равными переданным в конструктор координатам.
-	
-	Метод plus принимает один аргумент — вектор, объект Vector.
-	Если передать аргумент другого типа, то бросает исключение "Можно прибавлять к вектору только вектор типа Vector".
-	Создает и возвращает новый объект типа Vector, координаты которого будут суммой соответствующих координат суммируемых векторов.
-
-	Метод times gринимает один аргумент — множитель, число.
-	Создает и возвращает новый объект типа Vector, координаты которого будут равны соответствующим координатам исходного вектора, умноженным на множитель.
-*/
 class Vector {
 	constructor(x = 0, y = 0) {
 		this.x = x;
@@ -28,23 +18,6 @@ class Vector {
   }
 }
 
-/*
-	Класс Actor, который позволит контролировать все движущиеся объекты на игровом поле и контролировать их пересечение.
-	Конструктор принимает три аргумента - объекты типа Vector: расположение (pos), размер (size) и скорость (speed).
-	По умолчанию создается объект с координатами 0:0, размером 1x1 и скоростью 0:0. 
-	Если в качестве первого, второго или третьего аргумента передать не объект типа Vector, то конструктор бросает исключение.
-	
-	Свойства:
-	- pos, в котором размещен Vector. 
-	- size, в котором размещен Vector.
-	- speed, в котором размещен Vector.
-	Определен метод act, который ничего не делает.
-	Определены свойства только для чтения left, top, right, bottom, в которых установлены границы объекта по осям X и Y с учетом его расположения и размера.
-	Свойство type — строка со значением actor, только для чтения.
-	
-	Метод isIntersect проверяет, пересекается ли текущий объект с переданным объектом, и если да, возвращает true, иначе false.
-	Принимает один аргумент — движущийся объект типа Actor. Если передать аргумент другого типа или вызвать без аргументов, то метод бросает исключение. Если передать в качестве аргумента этот же объект, то всегда возвращает false. Объект не пересекается сам с собой. Объекты, имеющие смежные границы, не пересекаются.
-*/
 class Actor {
 	constructor(pos = new Vector(0, 0), size = new Vector(1, 1), speed = new Vector(0, 0)) {
 		this.pos = pos;
@@ -173,5 +146,146 @@ class Level {
 				this.finishDelay = 1;
 			}
 		}
+	}
+}
+
+class LevelParser {
+	constructor(dictionary) {
+		this.dictionary = dictionary;
+	}
+
+	actorFromSymbol(char) {
+		if (char === undefined) {
+			return undefined;
+		} else {
+			return this.dictionary[char];
+		}
+	}
+
+	obstacleFromSymbol(char) {
+		switch(char) {
+			case 'x' :
+				return 'wall';
+			case '!' :
+				return 'lava';
+			default :
+				return undefined;
+		}
+	}
+
+	createGrid(plan) {
+    let levelGrid = plan.map(str => str.split(''));
+    // levelGrid.map(str => str = str.map(el => this.obstacleFromSymbol(el))); не работает
+    for (let i = 0; i < levelGrid.length; i++) {
+      levelGrid[i] = levelGrid[i].map(el => this.obstacleFromSymbol(el));
+    }
+    return levelGrid;
+  }
+
+	createActors(plan) {
+		const actors = [];
+		if (this.dictionary) {
+			plan.forEach((row, y) => {
+				row.split('').forEach((char, x) => {
+  				if (typeof(this.dictionary[char]) === 'function') {
+						const actor = new this.dictionary[char](new Vector(x, y));
+						if (actor instanceof Actor) {
+							actors.push(actor);
+						}						
+					}
+				});
+			});  		
+  	}
+  	return actors;
+  }
+
+	parse(plan) {
+  	return new Level(this.createGrid(plan), this.createActors(plan));
+  }
+}
+
+class Fireball extends Actor {
+	constructor(pos = new Vector(0, 0), speed = new Vector(0, 0)) {
+		super(pos, new Vector(1, 1), speed);
+		Object.defineProperty(this, 'type', {value: 'fireball', writable: false});
+	}
+
+	getNextPosition(time = 1) {
+		return new Vector( (this.speed.x * time + this.pos.x), (this.speed.y * time + this.pos.y) );
+	}
+
+	handleObstacle() {
+		this.speed.x *= -1;
+		this.speed.y *= -1;
+	}
+
+	act(time, level) {
+		let newPos = this.getNextPosition(time);
+		if (level.obstacleAt(newPos, this.size)) {
+			this.handleObstacle();
+		} else {
+			this.pos = newPos;
+		}
+	}
+}
+
+class HorizontalFireball extends Fireball {
+	constructor(pos = new Vector(0, 0)) {
+		super(pos, new Vector(2, 0));
+	}
+}
+
+class VerticalFireball extends Fireball {
+	constructor(pos = new Vector(0, 0)) {
+		super(pos, new Vector(0, 2));
+	}
+}
+
+class FireRain extends Fireball {
+	constructor(pos = new Vector(0, 0)) {
+		super(pos, new Vector(0, 3));
+		this.startPos = this.pos;
+	}
+	handleObstacle() {		
+		this.pos = this.startPos;
+	}
+}
+
+class Coin extends Actor {
+	constructor(pos = new Vector(0, 0)) {
+		super(pos)
+		Object.defineProperty(this, 'type', {value: 'coin', writable: false});
+		this.pos = this.pos.plus(new Vector(0.2, 0.1));
+		this.size = new Vector(0.6, 0.6);
+		this.springSpeed = 8;
+		this.springDist = 0.07;
+		this.spring = Math.random() * 2 * Math.PI;
+	}
+
+	updateSpring(time = 1) {
+		this.spring += this.springSpeed * time;
+	}
+
+	getSpringVector() {
+		return new Vector(0, Math.sin(this.spring) * this.springDist);
+	}
+
+	getNextPosition(time = 1) {
+		this.updateSpring(time);
+		return this.pos.plus(this.getSpringVector());
+	}
+
+	act(time) {
+		this.pos = this.getNextPosition(time);
+	}
+}
+
+class Player extends Actor {
+	constructor(pos = new Vector(0, 0)) {
+		super(pos, new Vector(0.8, 1.5), new Vector(0, 0));
+		this.pos = this.pos.plus(new Vector(0, -0.5));
+	}
+	get type() {
+		return 'player';
 	}
 }
